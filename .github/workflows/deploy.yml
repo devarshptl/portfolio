@@ -1,0 +1,30 @@
+name: Deploy Portfolio
+run-name: ${{ github.actor }} is deploying portfolio on AWS using Github Actions 🚀
+on: [push]
+jobs:
+  Deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build and deploy portfolio
+        env:
+          PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          HOSTNAME: ${{secrets.SSH_HOST}}
+          USER_NAME: ${{secrets.USER_NAME}}
+        run: |
+          echo "$PRIVATE_KEY" > private_key && chmod 600 private_key
+          ssh -o StrictHostKeyChecking=no -i private_key ${USER_NAME}@${HOSTNAME} '
+            # Start the build process
+            sudo dnf update -y &&
+            sudo dnf install -y httpd nodejs22 git && 
+            sudo systemctl enable httpd &&
+            sudo systemctl start httpd && 
+            if [ ! -d "portfolio" ]; then git clone https://github.com/devarshptl/portfolio; fi && 
+            cd portfolio &&
+            git config pull.rebase true && 
+            git pull --all &&
+            sudo npm i &&
+            sudo npm run build &&
+            sudo rm -rf /var/www/html/* &&
+            sudo mv ./dist/* /var/www/html
+          '
